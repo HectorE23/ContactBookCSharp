@@ -4,160 +4,137 @@ using System.Linq;
 
 namespace ContactBook
 {
-    public class ContactBookApp
+    public class ContactBook
     {
-        private List<Contact> _allContacts;
-        private int _page = 1;
-        private int _size = 10;
+        private List<Contact> allContacts;
+        private int page = 1;
+        private int size = 10;
 
-        public const string NEXT_PAGE = "+";
-        public const string PREV_PAGE = "-";
-        public const string GOTO_PAGE = "G";
-        public const string PAGE_SIZE = "S";
-
-        public const string CREATE_CONTACT = "C";
-        public const string REVIEW_CONTACT = "R";
-        public const string UPDATE_CONTACT = "U";
-        public const string DELETE_CONTACT = "D";
-        public const string FIND_CONTACTS = "F";
-        public const string ORDER_CONTACTS = "O";
-        public const string DEDUPLICATE_CONTACTS = "M";
-        public const string EXIT = "X";
-
-        public readonly string[] COMMANDS = new string[]
+        public ContactBook(List<Contact> contacts = null!)
         {
-            NEXT_PAGE, PREV_PAGE, GOTO_PAGE, PAGE_SIZE,
-            CREATE_CONTACT, REVIEW_CONTACT, UPDATE_CONTACT,
-            DELETE_CONTACT, FIND_CONTACTS, ORDER_CONTACTS,
-            DEDUPLICATE_CONTACTS, EXIT
-        };
-
-        public ContactBookApp(List<Contact> contacts)
-        {
-            _allContacts = contacts ?? new List<Contact>();
+            allContacts = (contacts == null) ? new List<Contact>() : contacts;
         }
 
         public void Start()
-{
-    ShowWelcomeScreen();
-
-    string input;
-
-    do
-    {
-        ShowContacts();
-
-        do
         {
-            ShowInputOptions();
-            input = GetInput();
-        }
-        while (!IsValidInput(input));
+            ShowWelcomeScreen();
 
-        ProcessInput(input);
+            string input;
+            do
+            {
+                Console.Clear();
+                ShowContacts();
 
-    }
-    while (!ConfirmExit());
+                do
+                {
+                    ShowInputOptions();
+                    input = GetInput();
+                }
+                while (!IsValidInput(input));
 
-    ShowExitScreen();
-}
+                ProcessInput(input);
 
-        private bool ConfirmExit()
-        {
-            throw new NotImplementedException();
-        }
+            } while (!ConfirmExit());
 
-        private bool IsValidInput(string input)
-        {
-            throw new NotImplementedException();
-        }
-
-        private string GetInput()
-        {
-            throw new NotImplementedException();
-        }
-
-        private void ShowInputOptions()
-        {
-            throw new NotImplementedException();
+            ShowExitScreen();
         }
 
         private void ShowWelcomeScreen()
         {
             Console.WriteLine("====================================");
-            Console.WriteLine(" Welcome to Hector's Contact Book ");
+            Console.WriteLine(" Welcome to Contact Book ");
             Console.WriteLine("====================================");
-            PressEnterToContinue();
+            Console.WriteLine("Press Enter to continue...");
+            Console.ReadLine();
         }
 
         private void ShowContacts()
         {
-            if (_allContacts.Count == 0)
+            if (allContacts.Count == 0)
             {
                 Console.WriteLine("No contacts found.");
                 return;
             }
 
-            int pageCount = (int)Math.Ceiling((double)_allContacts.Count / _size);
-            int start = (_page - 1) * _size;
-            int end = Math.Min(start + _size, _allContacts.Count);
+            int indexCol = allContacts.Count.ToString().Length;
+            int fnameCol = Math.Max("First Name".Length, allContacts.Max(c => c.GetFName()?.Length ?? 0));
+            int lnameCol = Math.Max("Last Name".Length, allContacts.Max(c => c.GetLName()?.Length ?? 0));
+            int phoneCol = Math.Max("Phone".Length, allContacts.Max(c => c.GetPhone()?.Length ?? 0));
+            int emailCol = Math.Max("Email".Length, allContacts.Max(c => c.GetEmail()?.Length ?? 0));
 
-            int indexWidth = _allContacts.Count.ToString().Length + 2;
-            int nameWidth = Math.Max("First Name".Length, _allContacts.Max(c => c.GetFName().Length)) + 2;
-            int lastNameWidth = Math.Max("Last Name".Length, _allContacts.Max(c => c.GetLName().Length)) + 2;
-            int phoneWidth = Math.Max("Phone".Length, _allContacts.Max(c => c.GetPhone().Length)) + 2;
-            int emailWidth = Math.Max("Email".Length, _allContacts.Max(c => c.GetEmail().Length)) + 2;
+            Console.WriteLine(""
+                + "{0, " + -indexCol + "} "
+                + "{1, " + -fnameCol + "} "
+                + "{2, " + -lnameCol + "} "
+                + "{3, " + -phoneCol + "} "
+                + "{4, " + -emailCol + "} ",
+                "#", "First Name", "Last Name", "Phone", "Email");
 
-            string headerFormat = $"{{0,-{indexWidth}}} {{1,-{nameWidth}}} {{2,-{lastNameWidth}}} {{3,-{phoneWidth}}} {{4,-{emailWidth}}}";
-            Console.WriteLine(headerFormat, "#", "First Name", "Last Name", "Phone", "Email");
+            Console.WriteLine(new string('-', indexCol + 2 + fnameCol + 2 + lnameCol + 2 + phoneCol + 2 + emailCol));
 
-            int totalWidth = indexWidth + nameWidth + lastNameWidth + phoneWidth + emailWidth;
-            Console.WriteLine(new string('─', totalWidth));
+            int n = allContacts.Count;
+            int pageCount = (int)Math.Max(1, Math.Ceiling(n / (double)size));
 
-            for (int i = start; i < end; i++)
+            int s = Math.Clamp((page - 1) * size, 0, n);
+            int e = Math.Clamp(s + size, 0, n);
+
+            for (int i = s; i < e; i++)
             {
-                var c = _allContacts[i];
-                Console.WriteLine(headerFormat,
-                    (i + 1),
-                    c.GetFName(),
-                    c.GetLName(),
-                    c.GetPhone(),
-                    c.GetEmail());
+                Contact c = allContacts[i];
+
+                Console.WriteLine(""
+                    + "{0, " + -indexCol + "} "
+                    + "{1, " + -fnameCol + "} "
+                    + "{2, " + -lnameCol + "} "
+                    + "{3, " + -phoneCol + "} "
+                    + "{4, " + -emailCol + "} ",
+                    (i + 1),c.GetFName(),c.GetLName(),c.GetPhone(),c.GetEmail());
             }
 
-            Console.WriteLine(new string('─', totalWidth));
-            Console.WriteLine($"Page {_page} of {pageCount} (Showing {start + 1}-{end} of {_allContacts.Count} contacts)");
+            Console.WriteLine();
+            Console.WriteLine($"Page {page} of {pageCount} ({s + 1}-{e} of {n})");
         }
 
-        private string GetUserInput()
+        private void ShowInputOptions()
         {
-            Console.WriteLine($"\nCommands: [{NEXT_PAGE}] Next | [{PREV_PAGE}] Prev | [{EXIT}] Exit");
-            Console.Write("Select an option: ");
+            Console.WriteLine("\nCommands: [+] Next | [-] Prev | [Q] Quit");
+        }
+
+        private string GetInput()
+        {
+            Console.Write("Select option: ");
             return Console.ReadLine() ?? "";
+        }
+
+        private bool IsValidInput(string input)
+        {
+            return input == "+" || input == "-" || input.ToUpper() == "Q";
         }
 
         private void ProcessInput(string input)
         {
-            if (input == NEXT_PAGE)
+            int n = allContacts.Count;
+            int pageCount = (int)Math.Max(1, Math.Ceiling(n / (double)size));
+
+            if (input == "+")
             {
-                int pageCount = (int)Math.Ceiling((double)_allContacts.Count / _size);
-                if (_page < pageCount) _page++;
+                if (page < pageCount) page++;
             }
-            else if (input == PREV_PAGE)
+            else if (input == "-")
             {
-                if (_page > 1) _page--;
+                if (page > 1) page--;
             }
         }
 
-        private void PressEnterToContinue()
+        private bool ConfirmExit()
         {
-            Console.WriteLine("\nPress Enter to continue...");
-            while (Console.ReadKey(true).Key != ConsoleKey.Enter) { }
+            Console.Write("Exit? (Q to confirm): ");
+            return Console.ReadLine()?.ToUpper() == "Q";
         }
 
         private void ShowExitScreen()
         {
-            Console.WriteLine("\nThank you for using Contact Book. Goodbye!");
+            Console.WriteLine("Goodbye!");
         }
     }
 }
