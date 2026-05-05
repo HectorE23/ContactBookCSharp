@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace ContactBook
 {
-    public class ContactBook
+    public class ContactBookApp
     {
         private List<Contact> allContacts;
         private int page = 1;
@@ -14,6 +14,7 @@ namespace ContactBook
         public const string PREV_PAGE = "-";
         public const string GOTO_PAGE = "G";
         public const string PAGE_SIZE = "S";
+
         public const string CREATE_CONTACT = "C";
         public const string REVIEW_CONTACT = "R";
         public const string UPDATE_CONTACT = "U";
@@ -22,13 +23,20 @@ namespace ContactBook
         public const string ORDER_CONTACTS = "O";
         public const string DEDUPLICATE_CONTACTS = "M";
         public const string EXIT = "X";
+
         public const string YES = "Y";
         public const string NO = "N";
 
-        public readonly string[] COMMANDS = { NEXT_PAGE, PREV_PAGE, GOTO_PAGE, PAGE_SIZE, CREATE_CONTACT, REVIEW_CONTACT, UPDATE_CONTACT, DELETE_CONTACT, FIND_CONTACTS, ORDER_CONTACTS, DEDUPLICATE_CONTACTS, EXIT };
+        public readonly string[] COMMANDS = {
+            NEXT_PAGE, PREV_PAGE, GOTO_PAGE, PAGE_SIZE,
+            CREATE_CONTACT, REVIEW_CONTACT, UPDATE_CONTACT,
+            DELETE_CONTACT, FIND_CONTACTS, ORDER_CONTACTS,
+            DEDUPLICATE_CONTACTS, EXIT
+        };
+
         public readonly string[] YES_NO_OPTIONS = { YES, NO };
 
-        public ContactBook(List<Contact> contacts = null!)
+        public ContactBookApp(List<Contact> contacts = null!)
         {
             allContacts = contacts ?? new List<Contact>();
         }
@@ -41,19 +49,18 @@ namespace ContactBook
 
             while (running)
             {
-                Console.Clear();              
+                Console.Clear();
 
-                ShowContacts();               
-                ShowInputOptions();           
+                ShowContacts();
+                ShowInputOptions();
 
-                string input = GetInput();    
+                string input = GetInput();
 
                 if (IsValidInput(input))
                 {
                     if (input == EXIT)
                     {
-                        if (ConfirmExit())
-                            running = false;
+                        if (ConfirmExit()) running = false;
                     }
                     else
                     {
@@ -62,7 +69,7 @@ namespace ContactBook
                 }
                 else
                 {
-                    Console.WriteLine("ERROR: Invalid input.");
+                    Console.WriteLine("Invalid input.");
                     PressEnterToContinue();
                 }
             }
@@ -70,95 +77,231 @@ namespace ContactBook
             ShowExitScreen();
         }
 
+        // ================= CREATE =================
+
         private void CreateContact()
         {
             Console.Clear();
 
-            Console.WriteLine("====================================");
-            Console.WriteLine("     CREATE NEW CONTACT (HECTOR)    ");
-            Console.WriteLine("====================================");
+            Console.WriteLine("Create Contact");
+            Console.WriteLine(new string('#', 80));
+            Console.WriteLine();
 
-            string fName = ReadString("First Name");
-            string lName = ReadString("Last Name");
-            string phone = ReadPhone("Phone Number");
-            string email = ReadEmail("Email Address");
+            Console.Write("Enter first name: ");
+            string fname = Console.ReadLine()!;
+            Console.Write("Enter last name: ");
+            string lname = Console.ReadLine()!;
+            Console.Write("Enter phone: ");
+            string phone = Console.ReadLine()!;
+            Console.Write("Enter email: ");
+            string email = Console.ReadLine()!;
 
-            Contact newContact = new Contact(fName, lName, phone, email);
-            allContacts.Add(newContact);
+            if (Confirm("Do you want to create this contact?", YES))
+            {
+                CreateContact(fname, lname, phone, email);
+                Console.WriteLine("Contact created.");
+            }
+            else
+            {
+                Console.WriteLine("Operation cancelled.");
+            }
 
-            Console.WriteLine("\n[Success] Contact added!");
             PressEnterToContinue();
         }
 
-        private string ReadString(string label)
+        private void CreateContact(string fname, string lname, string phone, string email)
         {
-            string result;
-
-            do
-            {
-                Console.Write($"{label}: ");
-                result = Console.ReadLine()?.Trim() ?? "";
-
-                if (string.IsNullOrEmpty(result))
-                {
-                    Console.WriteLine("Error: Cannot be empty.");
-                }
-
-            } while (string.IsNullOrEmpty(result));
-
-            return result;
+            Contact c = new Contact(fname, lname, phone, email);
+            allContacts.Add(c);
         }
 
-        private string ReadPhone(string label)
+        // ================= REVIEW =================
+
+        private void ReviewContact()
         {
-            return ReadString(label);
+            if (allContacts.Count == 0)
+            {
+                Console.WriteLine("No contacts found.");
+                PressEnterToContinue();
+                return;
+            }
+
+            int index = GetInt("Enter index", 1, allContacts.Count) - 1;
+
+            Console.Clear();
+            ReviewContact(index);
+            PressEnterToContinue();
         }
 
-        private string ReadEmail(string label)
+        private void ReviewContact(int index)
         {
-            string email;
-            bool isValid = false;
+            Contact c = allContacts[index];
 
-            do
-            {
-                email = ReadString(label);
+            Console.WriteLine(new string('#', 80));
+            Console.WriteLine("Review Contact");
+            Console.WriteLine(new string('#', 80));
+            Console.WriteLine();
 
-                if (email.Contains("@") && email.Contains("."))
-                {
-                    isValid = true;
-                }
-                else
-                {
-                    Console.WriteLine("Error: Invalid email.");
-                }
+            Console.WriteLine($"First name: {c.GetFName()}");
+            Console.WriteLine($"Last name: {c.GetLName()}");
+            Console.WriteLine($"Phone: {c.GetPhone()}");
+            Console.WriteLine($"Email: {c.GetEmail()}");
 
-            } while (!isValid);
-
-            return email;
+            Console.WriteLine();
         }
 
-        private void ProcessInput(string input)
+        // ================= UPDATE =================
+
+        private void UpdateContact()
         {
-            switch (input)
+            if (allContacts.Count == 0)
             {
-                case NEXT_PAGE:
-                    NextPage();
-                    break;
+                Console.WriteLine("No contacts.");
+                PressEnterToContinue();
+                return;
+            }
 
-                case PREV_PAGE:
-                    PrevPage();
-                    break;
+            int index = GetInt("Enter index", 1, allContacts.Count) - 1;
 
-                case CREATE_CONTACT:
-                    CreateContact();
-                    break;
+            Console.Clear();
+            UpdateContact(index);
+        }
 
-                default:
-                    Console.WriteLine($"Action '{input}' not implemented yet.");
-                    PressEnterToContinue();
-                    break;
+        private void UpdateContact(int index)
+        {
+            Contact c = allContacts[index];
+
+            string fname = c.GetFName();
+            string lname = c.GetLName();
+            string phone = c.GetPhone();
+            string email = c.GetEmail();
+
+            ReviewContact(index);
+
+            Console.WriteLine(new string('#', 80));
+            Console.WriteLine("Update Contact");
+            Console.WriteLine(new string('#', 80));
+            Console.WriteLine();
+
+            if (Confirm("Do you want to edit the first name?", NO))
+            {
+                Console.Write("Enter first name: ");
+                fname = Console.ReadLine()!;
+            }
+
+            if (Confirm("Do you want to edit the last name?", NO))
+            {
+                Console.Write("Enter last name: ");
+                lname = Console.ReadLine()!;
+            }
+
+            if (Confirm("Do you want to edit the phone?", NO))
+            {
+                Console.Write("Enter phone: ");
+                phone = Console.ReadLine()!;
+            }
+
+            if (Confirm("Do you want to edit the email?", NO))
+            {
+                Console.Write("Enter email: ");
+                email = Console.ReadLine()!;
+            }
+
+            if (Confirm("Do you want to update this contact?", YES))
+            {
+                c.SetFName(fname);
+                c.SetLName(lname);
+                c.SetPhone(phone);
+                c.SetEmail(email);
+
+                Console.WriteLine("Operation successful: Contact updated.");
+            }
+            else
+            {
+                Console.WriteLine("Operation cancelled.");
+            }
+
+            PressEnterToContinue();
+        }
+        // ================= DELETE =================
+
+        private void DeleteContact()
+        {
+            if (allContacts.Count == 0)
+            {
+                Console.WriteLine("No contacts.");
+                PressEnterToContinue();
+                return;
+            }
+
+            int index = GetInt("Enter index", 1, allContacts.Count) - 1;
+
+            Console.Clear();
+            DeleteContact(index);
+            PressEnterToContinue();
+        }
+
+        private void DeleteContact(int index)
+        {
+            Contact c = allContacts[index];
+
+            if (Confirm($"Do you want to delete {c.GetFName()} {c.GetLName()}?", NO))
+            {
+                allContacts.RemoveAt(index);
+                Console.WriteLine("Contact deleted.");
+            }
+            else
+            {
+                Console.WriteLine("Operation cancelled.");
             }
         }
+
+        // ================= FIND =================
+
+        private void FindContacts()
+        {
+            Console.Write("Search: ");
+            string q = Console.ReadLine()!.ToLower();
+
+            var results = allContacts.Where(c =>
+                c.GetFName().ToLower().Contains(q) ||
+                c.GetLName().ToLower().Contains(q) ||
+                c.GetPhone().Contains(q) ||
+                c.GetEmail().ToLower().Contains(q)
+            ).ToList();
+
+            Console.Clear();
+            ShowContacts(results, 1, results.Count);
+            PressEnterToContinue();
+        }
+
+        // ================= ORDER =================
+
+        private void OrderContacts()
+        {
+            allContacts = allContacts
+                .OrderBy(c => c.GetFName())
+                .ThenBy(c => c.GetLName())
+                .ToList();
+
+            Console.WriteLine("Contacts ordered.");
+            PressEnterToContinue();
+        }
+
+        // ================= DEDUP =================
+
+        private void DeduplicateContacts()
+        {
+            allContacts = allContacts
+                .GroupBy(c => $"{c.GetFName()}-{c.GetLName()}-{c.GetPhone()}")
+                .Select(g => g.First())
+                .ToList();
+
+            Console.WriteLine("Duplicates removed.");
+            PressEnterToContinue();
+        }
+
+        // ================= NAV =================
 
         private void NextPage()
         {
@@ -172,49 +315,32 @@ namespace ContactBook
 
         private void PrevPage()
         {
-            PrevPage(allContacts, ref page);
+            PrevPage(allContacts, ref page, size);
         }
 
-        private void PrevPage(List<Contact> contacts, ref int page)
+        private void PrevPage(List<Contact> contacts, ref int page, int size)
         {
             page = Math.Clamp(page - 1, 1, PageCount(contacts, size));
         }
 
         private void GotoPage()
         {
-            Console.WriteLine("Goto Page");
+            page = GetInt("Enter page", 1, PageCount(allContacts, size));
         }
 
-        private bool ConfirmExit()
+        private void PageSize()
         {
-            return Confirm("Do you want to exit?", NO);
+            int max = Console.WindowHeight - 10;
+            size = GetInt("Enter page size", 1, max);
+            page = 1;
         }
 
-        private bool Confirm(string prompt, string defaultOption)
+        private int PageCount(List<Contact> contacts, int size)
         {
-            string response = GetOption(prompt, YES_NO_OPTIONS, defaultOption);
-            return response == YES;
+            return (int)Math.Max(1, Math.Ceiling(contacts.Count / (double)size));
         }
 
-        private string GetOption(string prompt, string[] validOptions, string defaultOption)
-        {
-            string optionsStr = string.Join("/", validOptions);
-
-            while (true)
-            {
-                Console.Write($"{prompt} [{optionsStr}] ({defaultOption}): ");
-
-                string input = Console.ReadLine()?.ToUpper().Trim() ?? "";
-
-                if (string.IsNullOrWhiteSpace(input))
-                    return defaultOption;
-
-                if (validOptions.Contains(input))
-                    return input;
-
-                Console.WriteLine("Invalid option.");
-            }
-        }
+        // ================= UI =================
 
         private void ShowContacts()
         {
@@ -223,62 +349,43 @@ namespace ContactBook
 
         private void ShowContacts(List<Contact> contacts, int page, int size)
         {
-            if (contacts.Count <= 0)
+            if (contacts.Count == 0)
             {
-                Console.WriteLine("No contacts found.");
+                Console.WriteLine("No contacts.");
                 return;
             }
 
-            int indexCol = Math.Max("#".Length, contacts.Count.ToString().Length);
-            int fnameCol = Math.Max("First Name".Length, contacts.Max(c => c.GetFName()?.Length ?? 0));
-            int lnameCol = Math.Max("Last Name".Length, contacts.Max(c => c.GetLName()?.Length ?? 0));
-            int phoneCol = Math.Max("Phone".Length, contacts.Max(c => c.GetPhone()?.Length ?? 0));
-            int emailCol = Math.Max("Email".Length, contacts.Max(c => c.GetEmail()?.Length ?? 0));
+            int start = (page - 1) * size;
+            int end = Math.Min(start + size, contacts.Count);
 
-            Console.WriteLine(""
-                + "{0," + -indexCol + "} "
-                + "{1," + -fnameCol + "} "
-                + "{2," + -lnameCol + "} "
-                + "{3," + -phoneCol + "} "
-                + "{4," + -emailCol + "} ",
-                "#", "First Name", "Last Name", "Phone", "Email");
+            int indexCol = Math.Max("#".Length, contacts.Count.ToString().Length);
+            int fnameCol = Math.Max("First Name".Length, contacts.Max(c => c.GetFName().Length));
+            int lnameCol = Math.Max("Last Name".Length, contacts.Max(c => c.GetLName().Length));
+            int phoneCol = Math.Max("Phone".Length, contacts.Max(c => c.GetPhone().Length));
+            int emailCol = Math.Max("Email".Length, contacts.Max(c => c.GetEmail().Length));
+
+            Console.WriteLine(
+                $"{{0,-{indexCol}}} {{1,-{fnameCol}}} {{2,-{lnameCol}}} {{3,-{phoneCol}}} {{4,-{emailCol}}}",
+                "#", "First Name", "Last Name", "Phone", "Email"
+            );
 
             Console.WriteLine(new string('-', indexCol + fnameCol + lnameCol + phoneCol + emailCol + 4));
 
-            int n = contacts.Count;
-            int pageCount = PageCount(contacts, size);
-            int s = Math.Clamp((page - 1) * size, 0, n);
-            int e = Math.Clamp(s + size, 0, n);
-
-            for (int i = s; i < e; i++)
+            for (int i = start; i < end; i++)
             {
-                Contact c = contacts[i];
+                var c = contacts[i];
 
-                Console.WriteLine(""
-                    + "{0," + -indexCol + "} "
-                    + "{1," + -fnameCol + "} "
-                    + "{2," + -lnameCol + "} "
-                    + "{3," + -phoneCol + "} "
-                    + "{4," + -emailCol + "} ",
-                    (i + 1),
+                Console.WriteLine(
+                    $"{{0,-{indexCol}}} {{1,-{fnameCol}}} {{2,-{lnameCol}}} {{3,-{phoneCol}}} {{4,-{emailCol}}}",
+                    i + 1,
                     c.GetFName(),
                     c.GetLName(),
                     c.GetPhone(),
-                    c.GetEmail());
+                    c.GetEmail()
+                );
             }
 
-            Console.WriteLine();
-            Console.WriteLine($"Page {page} of {pageCount} ({s + 1}-{e} of {n})");
-        }
-
-        private int PageCount(List<Contact> contacts, int size)
-        {
-            return (int)Math.Max(1, Math.Ceiling(contacts.Count / (double)size));
-        }
-
-        private static int NewMethod(int size, int n)
-        {
-            return (int)Math.Max(1, Math.Ceiling(n / (double)size));
+            Console.WriteLine($"\nPage {page} of {PageCount(contacts, size)}");
         }
 
         private void ShowInputOptions()
@@ -289,10 +396,13 @@ namespace ContactBook
             Console.WriteLine("[G] Goto Page | [U] Update Contact | [O] Order Contacts | [X] Exit");
             Console.WriteLine();
         }
+
+        // ================= INPUT =================
+
         private string GetInput()
         {
             Console.Write(">> ");
-            return Console.ReadLine()?.ToUpper().Trim() ?? "";
+            return Console.ReadLine()!.ToUpper();
         }
 
         private bool IsValidInput(string input)
@@ -300,20 +410,72 @@ namespace ContactBook
             return COMMANDS.Contains(input);
         }
 
+        private void ProcessInput(string input)
+        {
+            switch (input)
+            {
+                case NEXT_PAGE: NextPage(); break;
+                case PREV_PAGE: PrevPage(); break;
+                case GOTO_PAGE: GotoPage(); break;
+                case PAGE_SIZE: PageSize(); break;
+                case CREATE_CONTACT: CreateContact(); break;
+                case REVIEW_CONTACT: ReviewContact(); break;
+                case UPDATE_CONTACT: UpdateContact(); break;
+                case DELETE_CONTACT: DeleteContact(); break;
+                case FIND_CONTACTS: FindContacts(); break;
+                case ORDER_CONTACTS: OrderContacts(); break;
+                case DEDUPLICATE_CONTACTS: DeduplicateContacts(); break;
+            }
+        }
+
+        // ================= HELPERS =================
+
+        private int GetInt(string prompt, int min, int max)
+        {
+            int value;
+
+            Console.Write($"{prompt} [{min}-{max}]: ");
+
+            while (!int.TryParse(Console.ReadLine(), out value) || value < min || value > max)
+            {
+                Console.WriteLine("Invalid number.");
+                Console.Write($"{prompt} [{min}-{max}]: ");
+            }
+
+            return value;
+        }
+
+        private bool Confirm(string prompt, string defaultOption)
+        {
+            Console.Write($"{prompt} [Y/N] ({defaultOption}): ");
+            string input = Console.ReadLine()!.ToUpper();
+
+            if (string.IsNullOrWhiteSpace(input))
+                return defaultOption == "Y";
+
+            return input == "Y";
+        }
+
+        private bool ConfirmExit()
+        {
+            return Confirm("Do you want to exit?", NO);
+        }
+
         private void ShowWelcomeScreen()
         {
             Console.WriteLine("Welcome to Hector's Contact Book");
-        }
-
-        private void PressEnterToContinue()
-        {
-            Console.WriteLine("Press Enter...");
-            Console.ReadLine();
+            PressEnterToContinue();
         }
 
         private void ShowExitScreen()
         {
             Console.WriteLine("\nThanks for using Hector's Contact Book!");
+        }
+
+        private void PressEnterToContinue()
+        {
+            Console.WriteLine("\nPress Enter...");
+            Console.ReadLine();
         }
     }
 }

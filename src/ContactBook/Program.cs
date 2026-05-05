@@ -1,10 +1,10 @@
-﻿using System;
+﻿using ContactBook;
 
-public class Program
+class Program
 {
-    public static void Main()
+    static void Main()
     {
-        var app = new ContactBook.ContactBook(ContactBook.ContactSeeds.Contacts);
+        var app = new ContactBookApp(ContactSeed.GetContacts());
         app.Start();
     }
 }
