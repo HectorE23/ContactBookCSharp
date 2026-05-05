@@ -6,7 +6,8 @@ namespace ContactBook
 {
     public class ContactBookApp
     {
-        private List<Contact> allContacts;
+        private List<Contact> allContacts = new List<Contact>();
+        private List<Contact> filteredContacts = new List<Contact>();
         private int page = 1;
         private int size = 10;
 
@@ -117,25 +118,10 @@ namespace ContactBook
 
         // ================= REVIEW =================
 
-        private void ReviewContact()
-        {
-            if (allContacts.Count == 0)
-            {
-                Console.WriteLine("No contacts found.");
-                PressEnterToContinue();
-                return;
-            }
-
-            int index = GetInt("Enter index", 1, allContacts.Count) - 1;
-
-            Console.Clear();
-            ReviewContact(index);
-            PressEnterToContinue();
-        }
-
         private void ReviewContact(int index)
         {
-            Contact c = allContacts[index];
+            var list = filteredContacts.Count > 0 ? filteredContacts : allContacts;
+            Contact c = list[index];
 
             Console.WriteLine(new string('#', 80));
             Console.WriteLine("Review Contact");
@@ -148,6 +134,49 @@ namespace ContactBook
             Console.WriteLine($"Email: {c.GetEmail()}");
 
             Console.WriteLine();
+        }
+
+        private void ReviewContact()
+        {
+            var list = filteredContacts.Count > 0 ? filteredContacts : allContacts;
+
+            if (list.Count == 0)
+            {
+                Console.WriteLine("No contacts found.");
+                PressEnterToContinue();
+                return;
+            }
+
+            int totalPages = (int)Math.Ceiling((double)list.Count / size);
+
+            int start = (page - 1) * size;
+            int end = Math.Min(start + size, list.Count);
+
+            Console.Clear();
+
+            Console.WriteLine("# First Name Last Name Phone Email");
+            Console.WriteLine(new string('-', 80));
+
+            for (int i = start; i < end; i++)
+            {
+                Contact c = list[i];
+
+                Console.WriteLine(
+                    $"{i + 1,-3} " +
+                    $"{c.GetFName(),-10} " +
+                    $"{c.GetLName(),-10} " +
+                    $"{c.GetPhone(),-12} " +
+                    $"{c.GetEmail(),-25}"
+                );
+            }
+
+            Console.WriteLine();
+            Console.WriteLine($"Page {page} of {totalPages}");
+            Console.WriteLine();
+
+            Console.WriteLine("[+] Next Page | [-] Prev Page | [C] Create Contact | [D] Delete Contact | [M] Deduplicate Contacts");
+            Console.WriteLine("[R] Review Contact | [F] Find Contacts | [S] Change Page Size");
+            Console.WriteLine("[G] Goto Page | [U] Update Contact | [O] Order Contacts | [X] Exit");
         }
 
         // ================= UPDATE =================
@@ -260,19 +289,34 @@ namespace ContactBook
 
         private void FindContacts()
         {
-            Console.Write("Search: ");
-            string q = Console.ReadLine()!.ToLower();
+            Console.Write("Enter search term: ");
+            string searchTerm = Console.ReadLine()!.ToLower();
 
-            var results = allContacts.Where(c =>
-                c.GetFName().ToLower().Contains(q) ||
-                c.GetLName().ToLower().Contains(q) ||
-                c.GetPhone().Contains(q) ||
-                c.GetEmail().ToLower().Contains(q)
-            ).ToList();
+            Console.WriteLine();
 
-            Console.Clear();
-            ShowContacts(results, 1, results.Count);
-            PressEnterToContinue();
+            if (Confirm("Do you want to search contacts?", YES))
+            {
+                if (string.IsNullOrWhiteSpace(searchTerm))
+                {
+                    filteredContacts.Clear();
+                    page = 1;
+                    Console.WriteLine("Search cleared.");
+                    return;
+                }
+
+                filteredContacts = allContacts.FindAll(c =>
+                    (c.GetFName() + c.GetLName() + c.GetPhone() + c.GetEmail())
+                    .ToLower()
+                    .Contains(searchTerm)
+                );
+
+                page = 1;
+                Console.WriteLine("Operation successful: Contact searched.");
+            }
+            else
+            {
+                Console.WriteLine("Operation cancelled: Contact not searched.");
+            }
         }
 
         // ================= ORDER =================
@@ -344,7 +388,8 @@ namespace ContactBook
 
         private void ShowContacts()
         {
-            ShowContacts(allContacts, page, size);
+            var contacts = filteredContacts.Count > 0 ? filteredContacts : allContacts;
+            ShowContacts(contacts, page, size);
         }
 
         private void ShowContacts(List<Contact> contacts, int page, int size)
